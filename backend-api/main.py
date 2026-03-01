@@ -170,5 +170,40 @@ def history(uid):
         log["_id"] = str(log["_id"])
     return jsonify(logs)
 
+@app.route("/api/wallets/status", methods=["POST"])
+def update_status():
+    data = request.json
+    uid = data.get("rfidUid")
+    status = data.get("status") # 'active' or 'blocked'
+    wallets.update_one({"rfid_uid": uid}, {"$set": {"status": status}})
+    return jsonify({"success": True})
+
+@app.route("/api/wallets/replace", methods=["POST"])
+def replace_card():
+    data = request.json
+    old_uid = data.get("oldUid")
+    new_uid = data.get("newUid")
+    
+    old_wallet = wallets.find_one({"rfid_uid": old_uid})
+    if not old_wallet:
+        return jsonify({"success": False, "message": "Old Card not found"}), 404
+        
+    # Create new wallet with old balance
+    new_wallet = {
+        "rfid_uid": new_uid,
+        "balance": old_wallet["balance"],
+        "user_name": old_wallet.get("user_name", "Student"),
+        "status": "active"
+    }
+    wallets.insert_one(new_wallet)
+    
+    # Block old card and clear balance
+    wallets.update_one({"rfid_uid": old_uid}, {"$set": {"status": "blocked", "balance": 0}})
+    
+    # Transfer history
+    transactions.update_many({"rfid_uid": old_uid}, {"$set": {"rfid_uid": new_uid}})
+    
+    return jsonify({"success": True, "message": "Balance and history transferred"})
+
 if __name__ == "__main__":
     app.run(port=5000, debug=True)

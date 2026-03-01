@@ -61,6 +61,7 @@
             <div class="tab active" onclick="switchTab('products')">Buy Services</div>
             <div class="tab" onclick="switchTab('topup')">Refill Wallet</div>
             <div class="tab" onclick="switchTab('history')">Activity Log</div>
+            <div class="tab" onclick="switchTab('admin')">Card Admin</div>
         </div>
 
         <!-- PRODUCTS -->
@@ -99,6 +100,35 @@
                     </thead>
                     <tbody id="history-body"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- ADMIN / CARD MGMT -->
+        <div id="admin" class="tab-content">
+            <div class="grid">
+                <div class="card">
+                    <h3>Replace Lost Card</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Transfer balance and history to a new UID.
+                    </p>
+                    <div class="form-group">
+                        <label>Current (Old) Card UID</label>
+                        <input type="text" id="old-uid-input" placeholder="e.g. A1B2C3D4">
+                    </div>
+                    <div class="form-group">
+                        <label>New Card UID</label>
+                        <input type="text" id="new-uid-input" placeholder="Scan new card...">
+                    </div>
+                    <button class="btn" style="width: 100%;" onclick="replaceCard()">Transfer & Replace</button>
+                </div>
+
+                <div class="card" style="border-color: var(--danger);">
+                    <h3>Security Controls</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 20px;">Emergency card blocking.</p>
+                    <button class="btn" style="width: 100%; background: var(--danger);"
+                        onclick="updateCardStatus('blocked')">Block Current Card</button>
+                    <button class="btn" style="width: 100%; margin-top: 10px; background: var(--success);"
+                        onclick="updateCardStatus('active')">Unblock Card</button>
+                </div>
             </div>
         </div>
     </div>
@@ -212,6 +242,39 @@
         async function logout() {
             await fetch(`${API_BASE}/session/logout`, { method: 'POST' });
             lockUI();
+        }
+
+        async function replaceCard() {
+            const oldUid = document.getElementById('old-uid-input').value;
+            const newUid = document.getElementById('new-uid-input').value;
+            if (!oldUid || !newUid) return alert("Please fill both UIDs");
+
+            const res = await fetch(`${API_BASE}/wallets/replace`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ oldUid, newUid })
+            }).then(r => r.json());
+
+            if (res.success) {
+                alert("Replacement Successful! Old card is blocked.");
+                location.reload();
+            } else {
+                alert("Error: " + res.message);
+            }
+        }
+
+        async function updateCardStatus(status) {
+            if (!confirm(`Are you sure you want to set status to ${status}?`)) return;
+            const res = await fetch(`${API_BASE}/wallets/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rfidUid: currentUid, status })
+            }).then(r => r.json());
+
+            if (res.success) {
+                alert(`Card is now ${status}`);
+                refreshSessionData();
+            }
         }
 
         function switchTab(tabId) {

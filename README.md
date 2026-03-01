@@ -1,57 +1,62 @@
-# RFID E-Commerce & Wallet Platform (Enhanced)
+# RFID E-Commerce & Terminal System (Hardware-Locked)
 
-A comprehensive IoT solution for service purchasing using RFID wallets, featuring atomic transactions, card management, and a premium web dashboard.
+A professional, academic-grade IoT RFID Wallet and E-Commerce platform. This system enforces a **Hardware-First** security model where the dashboard remains locked until an RFID card is scanned via the physical merchant terminal.
 
-## System Architecture
-**Dashboard (Web)** ←[HTTP]→ **Backend API (Node.js)** ←[MQTT]→ **ESP8266 (Firmware)**
-- **Central Decision-Maker**: The Backend API handles all business logic, balance checks, and database updates.
-- **Hardware Integration**: The ESP8266 acts as a merchant terminal, scanning cards and sending them to the backend.
+## 🔒 Hardware-First Security Flow
+Unlike traditional web apps, this system is a **Merchant Terminal**:
+1. **Locked State**: The Web Dashboard stays on a "Terminal Locked" screen by default.
+2. **Physical Scan**: When a student/user scans their RFID card on the ESP8266 reader, a `POST` is sent to the MQTT broker.
+3. **Session Unlock**: The Python Backend (main.py) detects the scan, validates the card, and "unlocks" a 5-minute interactive session on the Dashboard.
+4. **Service Purchase**: Once unlocked, the merchant can process purchases for Cafeteria meals, Printing services, and more.
 
-## Hardware-First Security (New Flow)
-This project enforces a **Scan-to-Access** security model. The Web Dashboard is locked by default and only opens when a valid RFID tag is scanned via the hardware (ESP8266 or Simulator).
+## 🛠️ Technology Stack
+- **Backend**: Python (Flask) with `paho-mqtt` for hardware integration.
+- **Database**: MongoDB (Persistent wallet storage and transaction ledger).
+- **Frontend**: Vanilla HTML5, CSS3 (Glassmorphism design), and JavaScript (Fetch API).
+- **Hardware**: ESP8266 + MFRC522 RFID Reader + MQTT Broker.
 
-1. **Hardware Scan**: Scans card and notifies the Backend.
-2. **Dashboard Unlock**: The Web Dashboard detects the scan and opens the specific user's store session.
-3. **Timed Session**: Access expires after 5 minutes of inactivity for security.
-4. **Service Purchase**: Once unlocked, users can buy cafeteria meals, print documents, or top-up their balance.
+## 🚀 Setup & Deployment
 
-## Setup & Deployment
-1. **Backend (Python)**:
-   ```bash
-   cd backend-api
-   pip install -r requirements.txt
-   python main.py
-   ```
-2. **Frontend**: Open `web-dashboard/index.html`. It will show "Terminal Locked" until a card is scanned.
+### 1. Backend API (Python)
+Ensure you have Python 3.10+ installed.
+```bash
+cd backend-api
+pip install -r requirements.txt
+python main.py
+```
+*The backend handles both the REST API for the dashboard and the MQTT listener for the hardware.*
 
-
-## Safety & Rollback
-The system is designed for high reliability. 
-> [!NOTE]
-> **Standalone MongoDB Support**: By default, this version supports standard standalone MongoDB installations. To enable full Acid-compliant **Atomic Transactions**, you must run MongoDB as a **Replica Set** and re-enable the `session` logic in `index.js`. 
-
-In the current version, the system performs sequential updates (Wallets then Transactions) to ensure compatibility across all environments.
-
-<<<<<<< HEAD
-=======
 ### 2. Web Dashboard
-- Open `web-dashboard/index.html` in any modern browser.
-- Ensure the `API_URL` in the `<script>` tag matches your backend's address.
+Serve the dashboard using a local server (to avoid CORS/File-System blocks).
+```bash
+cd web-dashboard
+npx serve -s . -l 8240
+```
+Access at: `http://<SERVER_IP>:8240`
 
 ### 3. ESP8266 Firmware
 - Open `esp8266-firmware/esp8266-firmware.ino` in Arduino IDE.
-- Install libraries: `PubSubClient`, `MFRC522`, `ArduinoJson`.
-- Update WiFi and MQTT credentials in the configuration section.
-- Upload to your ESP8266 board.
+- Update your WiFi SSID, Password, and the MQTT Broker IP (`157.173.101.159`).
+- Flash the code to your board.
 
-## API Endpoints Summary
-- `GET /api/wallets`: List all registered wallets and balances.
-- `GET /api/transactions`: Retrieve the 50 most recent transactions.
-- `POST /api/wallets/topup`: Manually add balance to a card (Body: `{ rfidUid, amount }`).
+## 💡 Key Features
+- **Atomic Wallet Updates**: Balances are updated safely using MongoDB logic.
+- **Transaction Ledger**: Every purchase, top-up, and scan is logged for accounting.
+- **Service Catalog**: Pre-seeded services including Cafeteria, Internet, and Printing.
+- **Session Management**: Automated logout after 5 minutes of inactivity.
 
-## Live Web Dashboard
+## 📂 Repository Structure
+```text
+/rfid-wallet-system
+├── esp8266-firmware/   # Arduino/C++ Hardware Source
+├── backend-api/        # Python (Flask) Backend Logic
+├── web-dashboard/      # Vanilla HTML/CSS/JS Dashboard
+├── docs/               # System Architecture Diagrams
+└── README.md           # Project Documentation
+```
+
+## 🌐 Live Web Dashboard
 http://157.173.101.159:8240
->>>>>>> d60f1534b2e46fa8bc3adecd54bc552bb1b0a629
 
 ---
-*Created for Academic Submission - Production-Ready Standards*
+*University Capstone Project - Production-Ready Standards*
