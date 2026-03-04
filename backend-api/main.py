@@ -91,10 +91,16 @@ mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 
 def start_mqtt():
-    mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
-    mqtt_client.loop_forever()
+    try:
+        mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        mqtt_client.loop_forever()
+    except Exception as e:
+        print(f"MQTT Connection Error: {e}")
 
-threading.Thread(target=start_mqtt, daemon=True).start()
+if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+    threading.Thread(target=start_mqtt, daemon=True).start()
+elif not app.debug:
+    threading.Thread(target=start_mqtt, daemon=True).start()
 
 # --- API ENDPOINTS ---
 
@@ -206,4 +212,4 @@ def replace_card():
     return jsonify({"success": True, "message": "Balance and history transferred"})
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
