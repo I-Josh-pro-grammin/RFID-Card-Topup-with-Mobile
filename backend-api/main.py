@@ -109,6 +109,7 @@ def get_session():
     """Checks if a card was recently scanned to 'unlock' the dashboard"""
     # Session stays active for 5 minutes after hardware scan
     if time.time() - active_session["last_scan_time"] < 300:
+        print(f"Active Session Found: {active_session['rfid_uid']}")
         return jsonify(active_session)
     return jsonify({"rfid_uid": None})
 
@@ -212,4 +213,4 @@ def replace_card():
     return jsonify({"success": True, "message": "Balance and history transferred"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5055, debug=True)
