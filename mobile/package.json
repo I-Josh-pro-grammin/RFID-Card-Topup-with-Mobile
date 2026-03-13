@@ -1,7 +1,7 @@
 {
   "name": "mobile",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -9,8 +9,11 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "axios": "^1.13.6",
     "expo": "~55.0.6",
+    "expo-router": "^55.0.5",
     "expo-status-bar": "~55.0.4",
+    "lucide-react-native": "^0.577.0",
     "react": "19.2.0",
     "react-native": "0.83.2"
   },
