@@ -7,6 +7,7 @@ import { LogOut } from 'lucide-react-native';
 
 export default function Dashboard() {
   const [session, setSession] = useState(null);
+  const [stats, setStats] = useState({ total_cards: 0, total_balance: 0, total_transactions: 0 });
   const [timer, setTimer] = useState('05:00');
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
@@ -22,6 +23,15 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Fetch Session Error:', error);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await axios.get(`${Config.API_BASE}/stats`);
+      setStats(response.data);
+    } catch (error) {
+      console.error('Fetch Stats Error:', error);
     }
   };
 
@@ -45,13 +55,17 @@ export default function Dashboard() {
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    await fetchSession();
+    await Promise.all([fetchSession(), fetchStats()]);
     setRefreshing(false);
   }, []);
 
   useEffect(() => {
     fetchSession();
-    const interval = setInterval(fetchSession, 2000);
+    fetchStats();
+    const interval = setInterval(() => {
+      fetchSession();
+      fetchStats();
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -78,13 +92,13 @@ export default function Dashboard() {
 
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>WALLET BALANCE</Text>
+          <Text style={styles.statLabel}>CARD BALANCE</Text>
           <Text style={styles.statValue}>{session.user_data.balance}</Text>
           <Text style={styles.statSub}>Credits</Text>
         </View>
 
         <View style={styles.statCard}>
-          <Text style={styles.statLabel}>CARD STATUS</Text>
+          <Text style={styles.statLabel}>STATUS</Text>
           <Text style={[styles.statValue, { color: session.user_data.status === 'active' ? '#22c55e' : '#ef4444' }]}>
             {session.user_data.status.toUpperCase()}
           </Text>
@@ -97,6 +111,26 @@ export default function Dashboard() {
           <Text style={styles.statSub}>Auto-lock soon</Text>
         </View>
       </View>
+
+      <Text style={styles.sectionTitle}>Global System Stats</Text>
+      <View style={styles.statsGrid}>
+        <View style={[styles.statCard, { backgroundColor: '#1e293b' }]}>
+          <Text style={styles.statLabel}>TOTAL CARDS</Text>
+          <Text style={[styles.statValue, { color: '#6366f1' }]}>{stats.total_cards}</Text>
+          <Text style={styles.statSub}>Registered</Text>
+        </View>
+        <View style={[styles.statCard, { backgroundColor: '#1e293b' }]}>
+          <Text style={styles.statLabel}>TOTAL BALANCE</Text>
+          <Text style={[styles.statValue, { color: '#22c55e' }]}>{stats.total_balance}</Text>
+          <Text style={styles.statSub}>System-wide</Text>
+        </View>
+        <View style={[styles.statCard, { width: '100%', marginTop: 15, backgroundColor: '#1e293b' }]}>
+          <Text style={styles.statLabel}>TOTAL TRANSACTIONS</Text>
+          <Text style={[styles.statValue, { color: '#f59e0b' }]}>{stats.total_transactions}</Text>
+          <Text style={styles.statSub}>All-time history</Text>
+        </View>
+      </View>
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
@@ -167,5 +201,12 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontSize: 12,
     marginTop: 4,
+  },
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 30,
+    marginBottom: 15,
   },
 });

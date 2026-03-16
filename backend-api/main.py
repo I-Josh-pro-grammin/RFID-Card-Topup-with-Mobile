@@ -16,10 +16,12 @@ CORS(app)
 
 # --- CONFIGURATION ---
 MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
-MQTT_BROKER = "157.173.101.159"
+MQTT_BROKER = os.getenv("MQTT_BROKER", "157.173.101.159")
 MQTT_PORT = 1883
-TOPIC_SCAN = "rfid/wallet/scan"
-TOPIC_RESPONSE = "rfid/wallet/response"
+TEAM_ID = os.getenv("TEAM_ID", "wallet") # Default team ID as per spec
+
+TOPIC_SCAN = f"rfid/{TEAM_ID}/scan"
+TOPIC_RESPONSE = f"rfid/{TEAM_ID}/response"
 
 # --- DATABASE ---
 client = MongoClient(MONGO_URI)
@@ -31,7 +33,7 @@ products = db["products"]
 # --- GLOBAL STATE (Last Scanned Card) ---
 active_session = {
     "rfid_uid": None,
-    "last_scan_time": 0,
+    "last_scan_time": 0.0,
     "user_data": None
 }
 
@@ -80,7 +82,12 @@ def on_message(client, userdata, msg):
         }
         
         # Publish feedback to hardware
-        response = {"status": "success", "message": f"Welcome {uid}", "balance": wallet["balance"]}
+        response = {
+            "status": "success", 
+            "message": f"Welcome {uid}", 
+            "balance": wallet["balance"],
+            "team_id": TEAM_ID
+        }
         client.publish(TOPIC_RESPONSE, json.dumps(response))
         
     except Exception as e:
@@ -108,7 +115,8 @@ elif not app.debug:
 def get_session():
     """Checks if a card was recently scanned to 'unlock' the dashboard"""
     # Session stays active for 5 minutes after hardware scan
-    if time.time() - active_session["last_scan_time"] < 300:
+    last_scan = active_session["last_scan_time"]
+    if isinstance(last_scan, (int, float)) and time.time() - float(last_scan) < 300:
         print(f"Active Session Found: {active_session['rfid_uid']}")
         return jsonify(active_session)
     return jsonify({"rfid_uid": None})
@@ -118,6 +126,31 @@ def logout():
     global active_session
     active_session = {"rfid_uid": None, "last_scan_time": 0, "user_data": None}
     return jsonify({"success": True})
+
+@app.route("/api/stats", methods=["GET"])
+def get_stats():
+    """Provides global system statistics for the dashboard"""
+    total_cards = wallets.count_documents({})
+    total_balance = list(wallets.aggregate([{"$group": {"_id": None, "total": {"$sum": "$balance"}}}]))
+    total_transactions = transactions.count_documents({})
+    
+    # Calculate top-ups (credits) vs payments (debits)
+    credits = list(transactions.aggregate([
+        {"$match": {"type": "credit"}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]))
+    debits = list(transactions.aggregate([
+        {"$match": {"type": "debit"}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]))
+
+    return jsonify({
+        "total_cards": total_cards,
+        "total_balance": total_balance[0]["total"] if total_balance else 0,
+        "total_transactions": total_transactions,
+        "total_topups": credits[0]["total"] if credits else 0,
+        "total_payments": debits[0]["total"] if debits else 0
+    })
 
 @app.route("/api/products", methods=["GET"])
 def get_products():
@@ -149,7 +182,8 @@ def purchase():
         "amount": product["price"],
         "type": "debit",
         "description": f"Bought {product['name']}",
-        "timestamp": time.time()
+        "timestamp": time.time(),
+        "terminal": data.get("terminal", "Mobile-App")
     })
     
     return jsonify({"success": True, "new_balance": wallet["balance"] - product["price"]})
@@ -166,7 +200,8 @@ def topup():
         "amount": amount,
         "type": "credit",
         "description": "Dashboard Top-up",
-        "timestamp": time.time()
+        "timestamp": time.time(),
+        "terminal": data.get("terminal", "Mobile-App")
     })
     return jsonify({"success": True})
 
