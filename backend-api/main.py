@@ -18,7 +18,7 @@ CORS(app)
 MONGO_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
 MQTT_BROKER = os.getenv("MQTT_BROKER", "157.173.101.159")
 MQTT_PORT = 1883
-TEAM_ID = os.getenv("TEAM_ID", "wallet") # Default team ID as per spec
+TEAM_ID = os.getenv("TEAM_ID", "fop") # Default team ID as per spec
 
 TOPIC_SCAN = f"rfid/{TEAM_ID}/scan"
 TOPIC_RESPONSE = f"rfid/{TEAM_ID}/response"
@@ -162,8 +162,8 @@ def get_products():
 @app.route("/api/purchase", methods=["POST"])
 def purchase():
     data = request.json
-    uid = data.get("uid")
-    product_id = data.get("product_id")
+    uid = data.get("uid") or data.get("rfidUid")
+    product_id = data.get("product_id") or data.get("productId")
     
     wallet = wallets.find_one({"rfid_uid": uid})
     product = products.find_one({"_id": ObjectId(product_id)})
@@ -171,8 +171,11 @@ def purchase():
     if not wallet or wallet["status"] == "blocked":
         return jsonify({"success": False, "message": "Card Blocked/Invalid"})
     
+    if not product:
+        return jsonify({"success": False, "message": "Product not found"}), 404
+        
     if wallet["balance"] < product["price"]:
-        return jsonify({"success": False, "message": "Insufficient Balance"})
+        return jsonify({"success": False, "message": f"Need {product['price']} credits (Balance: {wallet['balance']})"})
     
     # Atomic-ish update (Simplified for local Mongo)
     wallets.update_one({"rfid_uid": uid}, {"$inc": {"balance": -product["price"]}})
@@ -199,11 +202,11 @@ def topup():
         "rfid_uid": uid,
         "amount": amount,
         "type": "credit",
-        "description": "Dashboard Top-up",
+        "description": "Mobile Top-up",
         "timestamp": time.time(),
         "terminal": data.get("terminal", "Mobile-App")
     })
-    return jsonify({"success": True})
+    return jsonify({"success": True, "message": f"Successfully added {amount} credits"})
 
 @app.route("/api/history/<uid>", methods=["GET"])
 def history(uid):
@@ -248,4 +251,4 @@ def replace_card():
     return jsonify({"success": True, "message": "Balance and history transferred"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5055, debug=True)
+    app.run(host="0.0.0.0", port=8240, debug=True)
