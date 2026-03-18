@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import Config from '../constants/Config';
@@ -8,14 +8,18 @@ import ScanLock from '../components/ScanLock';
 export default function EntryPoint() {
   const [session, setSession] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorStatus, setErrorStatus] = useState(null);
   const router = useRouter();
 
   const checkSession = async () => {
     try {
-      const response = await axios.get(`${Config.API_BASE}/session`);
+      const response = await axios.get(`${Config.API_BASE}/session`, { timeout: 3000 });
       const data = response.data;
+      setErrorStatus(null);
 
-      if (data.rfid_uid) {
+      const activeUid = data.rfid_uid || data.uid;
+
+      if (activeUid) {
         setSession(data);
         setIsLoading(false);
         // Navigate to dashboard if session found
@@ -25,6 +29,7 @@ export default function EntryPoint() {
         setIsLoading(false);
       }
     } catch (error) {
+      setErrorStatus(error.message);
       console.error('Session Check Failed:', error);
       setSession(null);
       setIsLoading(false);
@@ -49,7 +54,15 @@ export default function EntryPoint() {
   }
 
   if (!session) {
-    return <ScanLock />;
+    return (
+      <View style={{ flex: 1 }}>
+        <ScanLock />
+        <View style={{ position: 'absolute', bottom: 20, width: '100%', alignItems: 'center' }}>
+          <Text style={{ color: '#64748b', fontSize: 10 }}>Target API: {Config.API_BASE}</Text>
+          {errorStatus && <Text style={{ color: '#ef4444', fontSize: 10 }}>Error: {errorStatus}</Text>}
+        </View>
+      </View>
+    );
   }
 
   // If session exists, it will navigate via the router.replace in checkSession

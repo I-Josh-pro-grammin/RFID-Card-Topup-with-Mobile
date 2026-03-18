@@ -21,14 +21,19 @@ export default function Topup() {
         return;
       }
 
-      await axios.post(`${Config.API_BASE}/topup`, {
+      const res = await axios.post(`${Config.API_BASE}/topup`, {
         uid: uid,
-        amount: selectedAmount
+        amount: selectedAmount,
+        terminal: 'Mobile-Dashboard'
       });
 
-      Alert.alert('Success', `${selectedAmount} Credits added to your wallet!`);
+      if (res.data.success) {
+        alert('SUCCESS: ' + (res.data.message || `${selectedAmount} Credits added!`));
+      } else {
+        alert('FAILED: ' + (res.data.message || 'Top-up could not be processed'));
+      }
     } catch (error) {
-      Alert.alert('Error', 'Top-up failed');
+      alert('ERROR: ' + (error.response?.data?.message || error.message || 'Top-up failed'));
     } finally {
       setIsLoading(false);
     }

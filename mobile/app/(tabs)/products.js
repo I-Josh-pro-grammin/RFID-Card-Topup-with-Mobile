@@ -16,7 +16,7 @@ export default function Products() {
         axios.get(`${Config.API_BASE}/session`)
       ]);
       setProducts(prodRes.data);
-      setRfidUid(sessRes.data.rfid_uid);
+      setRfidUid(sessRes.data.rfid_uid || sessRes.data.uid);
     } catch (error) {
       console.error('Fetch error:', error);
     } finally {
@@ -25,36 +25,39 @@ export default function Products() {
   };
 
   const buyService = async (productId, name) => {
-    if (!rfidUid) return;
+    if (!rfidUid) {
+      Alert.alert('No Session', 'Please scan your RFID card first to unlock the dashboard.');
+      return;
+    }
     
-    Alert.alert(
-      'Confirm Purchase',
-      `Buy ${name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Purchase', 
-          onPress: async () => {
-            try {
-              const res = await axios.post(`${Config.API_BASE}/purchase`, {
-                rfidUid: rfidUid,
-                productId: productId,
-                quantity: 1
-              });
-              if (res.data.success) {
-                Alert.alert('Success', 'Purchase complete!');
-              }
-            } catch (error) {
-              Alert.alert('Error', error.response?.data?.error || 'Purchase failed');
-            }
-          }
-        }
-      ]
-    );
+    const confirmPurchase = window.confirm(`Buy ${name}?`);
+    if (!confirmPurchase) return;
+
+    console.log(`Attempting purchase of ${productId} for ${rfidUid}`);
+    try {
+      const res = await axios.post(`${Config.API_BASE}/purchase`, {
+        uid: rfidUid,
+        productId: productId,
+        terminal: 'Mobile-Dashboard'
+      });
+      
+      if (res.data.success) {
+        alert('SUCCESS: ' + (res.data.message || 'Purchase complete!'));
+        fetchData(); 
+      } else {
+        alert('SERVER REJECTED: ' + (res.data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Network Timeout';
+      alert('NETWORK/AXIOS ERROR: ' + msg);
+      console.error('Purchase Call Error:', error);
+    }
   };
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 3000); // Check for new scans every 3 seconds
+    return () => clearInterval(interval);
   }, []);
 
   if (isLoading) {

@@ -16,9 +16,11 @@ export default function Admin() {
     try {
       const res = await axios.post(`${Config.API_BASE}/wallets/replace`, { oldUid, newUid });
       if (res.data.success) {
-        Alert.alert('Success', 'Card replaced successfully! Old card is now blocked.');
+        Alert.alert('Success', res.data.message || 'Card replaced! Old card blocked.');
         setOldUid('');
         setNewUid('');
+      } else {
+        Alert.alert('Error', res.data.message || 'Replacement failed');
       }
     } catch (error) {
       Alert.alert('Error', error.response?.data?.message || 'Replacement failed');
@@ -47,7 +49,9 @@ export default function Admin() {
                 status 
               });
               if (res.data.success) {
-                Alert.alert('Updated', `Card is now ${status}`);
+                Alert.alert('Success', res.data.message || `Card is now ${status}`);
+              } else {
+                Alert.alert('Update Failed', res.data.message || 'Check card UID');
               }
             } 
           }

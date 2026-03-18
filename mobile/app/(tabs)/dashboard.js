@@ -15,7 +15,8 @@ export default function Dashboard() {
   const fetchSession = async () => {
     try {
       const response = await axios.get(`${Config.API_BASE}/session`);
-      if (response.data.rfid_uid) {
+      const activeUid = response.data.rfid_uid || response.data.uid;
+      if (activeUid) {
         setSession(response.data);
         updateTimer(response.data.last_scan_time);
       } else {
@@ -87,8 +88,9 @@ export default function Dashboard() {
       </View>
 
       <Text style={styles.sessionStatus}>
-        Active Session UID: <Text style={styles.uidCode}>{session.rfid_uid}</Text>
+        Active Session UID: <Text style={styles.uidCode}>{session.rfid_uid || session.uid || 'NONE'}</Text>
       </Text>
+      <Text style={{ color: '#475569', fontSize: 10, marginBottom: 20 }}>API: {Config.API_BASE}</Text>
 
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
