@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView, Platform } from 'react-native';
 import axios from 'axios';
 import Config from '../../constants/Config';
 import { ShieldAlert, RefreshCw, Lock, Unlock } from 'lucide-react-native';
@@ -36,29 +36,37 @@ export default function Admin() {
       
       if (!currentUid) return Alert.alert('Error', 'No active session');
 
-      Alert.alert(
-        'Confirm Action',
-        `Are you sure you want to ${status === 'blocked' ? 'Block' : 'Unblock'} this card?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Yes, Proceed', 
-            onPress: async () => {
-              const res = await axios.post(`${Config.API_BASE}/wallets/status`, { 
-                rfidUid: currentUid, 
-                status 
-              });
-              if (res.data.success) {
-                Alert.alert('Success', res.data.message || `Card is now ${status}`);
-              } else {
-                Alert.alert('Update Failed', res.data.message || 'Check card UID');
-              }
-            } 
-          }
-        ]
-      );
+      const confirmMsg = `Are you sure you want to ${status === 'blocked' ? 'Block' : 'Unblock'} this card?`;
+      
+      if (Platform.OS === 'web') {
+        if (window.confirm(confirmMsg)) {
+          executeStatusUpdate(currentUid, status);
+        }
+      } else {
+        Alert.alert(
+          'Confirm Action',
+          confirmMsg,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Yes, Proceed', onPress: () => executeStatusUpdate(currentUid, status) }
+          ]
+        );
+      }
     } catch (error) {
       Alert.alert('Error', 'Status update failed');
+    }
+  };
+
+  const executeStatusUpdate = async (rfidUid, status) => {
+    try {
+      const res = await axios.post(`${Config.API_BASE}/wallets/status`, { rfidUid, status });
+      if (res.data.success) {
+        Alert.alert('Success', res.data.message || `Card is now ${status}`);
+      } else {
+        Alert.alert('Update Failed', res.data.message || 'Check card UID');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'API request failed');
     }
   };
 

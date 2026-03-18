@@ -13,9 +13,11 @@
       "backgroundColor": "#0f172a"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.josh.rfidwallet"
     },
     "android": {
+      "package": "com.josh.rfidwallet",
       "adaptiveIcon": {
         "backgroundColor": "#0f172a",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -31,6 +33,12 @@
     ],
     "updates": {
       "enabled": false
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1a050fcd-9b95-41fe-a6e3-723e3aeb89f9"
+      }
     }
   }
 }
