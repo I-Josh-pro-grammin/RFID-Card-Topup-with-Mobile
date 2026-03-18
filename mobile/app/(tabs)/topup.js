@@ -28,12 +28,12 @@ export default function Topup() {
       });
 
       if (res.data.success) {
-        alert('SUCCESS: ' + (res.data.message || `${selectedAmount} Credits added!`));
+        Alert.alert('Success', res.data.message || `${selectedAmount} Credits added!`);
       } else {
-        alert('FAILED: ' + (res.data.message || 'Top-up could not be processed'));
+        Alert.alert('Failed', res.data.message || 'Top-up could not be processed');
       }
     } catch (error) {
-      alert('ERROR: ' + (error.response?.data?.message || error.message || 'Top-up failed'));
+      Alert.alert('Error', error.response?.data?.message || error.message || 'Top-up failed');
     } finally {
       setIsLoading(false);
     }

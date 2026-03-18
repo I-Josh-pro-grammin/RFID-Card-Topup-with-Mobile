@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import axios from 'axios';
 import Config from '../../constants/Config';
 import { ShoppingBag } from 'lucide-react-native';
@@ -30,9 +30,29 @@ export default function Products() {
       return;
     }
     
-    const confirmPurchase = window.confirm(`Buy ${name}?`);
-    if (!confirmPurchase) return;
+    const confirmMsg = `Buy ${name}?`;
+    let proceed = false;
 
+    if (Platform.OS === 'web') {
+      proceed = window.confirm(confirmMsg);
+    } else {
+      // For mobile, Alert.alert is used. Since buyService is async, 
+      // we wrap it in a Promise to wait for user interaction if needed, 
+      // or just call it directly with the native callback style.
+      return Alert.alert(
+        'Confirm Purchase',
+        confirmMsg,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Purchase', onPress: () => executePurchase(productId, rfidUid) }
+        ]
+      );
+    }
+
+    if (proceed) executePurchase(productId, rfidUid);
+  };
+
+  const executePurchase = async (productId, rfidUid) => {
     console.log(`Attempting purchase of ${productId} for ${rfidUid}`);
     try {
       const res = await axios.post(`${Config.API_BASE}/purchase`, {
@@ -42,14 +62,14 @@ export default function Products() {
       });
       
       if (res.data.success) {
-        alert('SUCCESS: ' + (res.data.message || 'Purchase complete!'));
+        Alert.alert('Success', res.data.message || 'Purchase complete!');
         fetchData(); 
       } else {
-        alert('SERVER REJECTED: ' + (res.data.message || 'Unknown error'));
+        Alert.alert('Server Rejected', res.data.message || 'Unknown error');
       }
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Network Timeout';
-      alert('NETWORK/AXIOS ERROR: ' + msg);
+      Alert.alert('Error', msg);
       console.error('Purchase Call Error:', error);
     }
   };
